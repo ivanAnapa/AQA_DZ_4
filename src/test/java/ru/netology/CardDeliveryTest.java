@@ -45,7 +45,7 @@ public class CardDeliveryTest {
 
         $(withText("Успешно!")).shouldBe(visible, Duration.ofSeconds(15));
         $(".notification__content")
-                .should(text("Встреча успешно забронирована на " + meetDate + 1))
+                .should(text("Встреча успешно забронирована на " + meetDate))
                 .shouldBe(visible);
 
         System.out.println("Тест на создание заявки пройден успешно");
@@ -99,7 +99,7 @@ public class CardDeliveryTest {
 
         $(withText("Успешно!")).shouldBe(visible, Duration.ofSeconds(15));
         $(".notification__content")
-                .should(text("Встреча успешно забронирована на " + meetDate + 1))
+                .should(text("Встреча успешно забронирована на " + meetDate))
                 .shouldBe(visible);
 
         System.out.println("Тест на создание заявки с использованием календаря и выпадающего списка пройден успешно");
