@@ -1,12 +1,12 @@
 package ru.netology;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.Keys;
 
-import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.Calendar;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 import static com.codeborne.selenide.Condition.text;
 import static com.codeborne.selenide.Condition.visible;
@@ -15,18 +15,15 @@ import static com.codeborne.selenide.Selenide.*;
 
 public class CardDeliveryTest {
 
+    @BeforeEach
+    void startBrowser() {
+        open("http://localhost:9999/");
+    }
+
     @Test
     public void cardDeliveryOrder() {
 
-        // Задать формат даты
-        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
-        Calendar c = Calendar.getInstance();
-        c.setTime(new Date());
-        // Добавить к текущему 4 дня
-        c.add(Calendar.DATE, 4);
-        String meetDate = sdf.format(c.getTime());
-
-        open("http://localhost:9999/");
+        String meetDate = generateDate(4);
 
         $x("//*[@placeholder='Город']").setValue("Краснодар");
 
@@ -37,18 +34,15 @@ public class CardDeliveryTest {
         $x("//*[@placeholder='Дата встречи']").setValue(meetDate);
         $x("//*[@placeholder='Дата встречи']").pressEscape();
 
-        $x("//*[@name='name']").setValue("Изъяславский Всеволод");
-        $x("//*[@name='phone']").setValue("+71112223334");
-
-        $x("//*[@class='checkbox__box']").click();
-        $x("//button[.//span[text()='Забронировать']]").click();
+        fillFullName("Изъяславский Всеволод");
+        fillPhoneNum("+71112223334");
+        enableAgreementCheckbox();
+        clickToBookBtn();
 
         $(withText("Успешно!")).shouldBe(visible, Duration.ofSeconds(15));
         $(".notification__content")
                 .should(text("Встреча успешно забронирована на " + meetDate))
                 .shouldBe(visible);
-
-        System.out.println("Тест на создание заявки пройден успешно");
     }
 
 
@@ -57,51 +51,49 @@ public class CardDeliveryTest {
 
         String city = "Краснодар";
 
-        // Задать формат даты
-        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
-        Calendar c = Calendar.getInstance();
-        c.setTime(new Date());
-        // Добавить к текущему 7 дней
-        c.add(Calendar.DATE, 7);
-        String meetDate = sdf.format(c.getTime());
-
-        open("http://localhost:9999/");
+        LocalDate current = LocalDate.now();
+        LocalDate required = LocalDate.now().plusDays(7);
+        String formattedDate = required.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
         // Оставить только 2 первые буквы от названия города: city.substring(0, 2)
         $x("//*[@placeholder='Город']").setValue(city.substring(0, 2));
         // Кликнуть по полному названию города в раскрывшемся списке
         $$(".menu-item__control").filterBy(text(city)).first().click();
 
-        // Пояснение к блоку:
-        // 1. Кликнуть по иконке "календарь"
         $x("//*[@placeholder='Дата встречи']/following-sibling::span").click();
-        // 2. Посчитать количество дней в месяце (все видимые даты)
-        int numOfDays = $$x("//td[@role='gridcell' and @data-day or contains(@class,'calendar__day_type_off') or contains(@class,'calendar__day_type_weekend-off')]")
-                .size();
-        // 3. Получить текущее число месяца
-        int currentDay = Integer.parseInt($x("//td[contains(@class,'calendar__day_state_today')]").getText());
-        // Если до конца месяца более 6 дней, то кликнуть по дате на след неделе
-        if ((numOfDays - currentDay) > 6) {
-            $x("//td[text()='" + (currentDay + 7) + "']").click();
-        } else {
-            // В противном случае, переключить месяц и там кликнуть по соответствующей дате. Пример:
-            // Сегодня 27 число, Всего дней в месяце: 31
-            // 7 - (31 - 27) = 7 - 4 = 3. Итого: кликнуть по 3 числу
-            $x("//*[@data-step='1']").click();
-            $x("//td[text()='" + (7 - (numOfDays - currentDay)) + "']").click();
+        if (current.getMonthValue() != required.getMonthValue()) {
+            $("[data-step='1']").click();
         }
+        $$("tr td").findBy(text(String.valueOf(required.getDayOfMonth()))).click();
 
-        $x("//*[@name='name']").setValue("Изъяславский Всеволод");
-        $x("//*[@name='phone']").setValue("+71112223334");
-
-        $x("//*[@class='checkbox__box']").click();
-        $x("//button[.//span[text()='Забронировать']]").click();
+        fillFullName("Изъяславскийъ Всеволод");
+        fillPhoneNum("+71112223335");
+        enableAgreementCheckbox();
+        clickToBookBtn();
 
         $(withText("Успешно!")).shouldBe(visible, Duration.ofSeconds(15));
         $(".notification__content")
-                .should(text("Встреча успешно забронирована на " + meetDate))
+                .should(text("Встреча успешно забронирована на " + formattedDate))
                 .shouldBe(visible);
+    }
 
-        System.out.println("Тест на создание заявки с использованием календаря и выпадающего списка пройден успешно");
+    private String generateDate(int days) {
+        return LocalDate.now().plusDays(days).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+    }
+
+    private void fillFullName(String fullName) {
+        $x("//*[@name='name']").setValue(fullName);
+    }
+
+    private void fillPhoneNum(String phoneNum) {
+        $x("//*[@name='phone']").setValue(phoneNum);
+    }
+
+    private void enableAgreementCheckbox() {
+        $x("//*[@class='checkbox__box']").click();
+    }
+
+    private void clickToBookBtn() {
+        $x("//button[.//span[text()='Забронировать']]").click();
     }
 }
